@@ -12,7 +12,6 @@ ___INFO___
   "type": "TAG",
   "id": "cvt_temp_public_id",
   "version": 1,
-  "categories": ["AFFILIATE_MARKETING", "ADVERTISING"],
   "securityGroups": [],
   "displayName": "OneTrust CMP",
   "brand": {
@@ -34,29 +33,8 @@ ___TEMPLATE_PARAMETERS___
     "type": "GROUP",
     "name": "CMP Settings",
     "displayName": "CMP Settings",
-    "groupStyle": "ZIPPY_CLOSED",
+    "groupStyle": "ZIPPY_OPEN",
     "subParams": [
-      {
-        "type": "RADIO",
-        "name": "Type",
-        "displayName": "Stub script type",
-        "radioItems": [
-          {
-            "value": "otTestScript",
-            "displayValue": "Test"
-          },
-          {
-            "value": "otProductionScript",
-            "displayValue": "Production"
-          },
-          {
-            "value": "otScriptNone",
-            "displayValue": "No script"
-          }
-        ],
-        "simpleValueType": true,
-        "help": "Choose whether the script you wish to load is \"Production\" or \"Test\". If you want to disable the banner from loading through this template because you have implemented it separately, choose \"No script\"."
-      },
       {
         "type": "TEXT",
         "name": "Domain",
@@ -69,13 +47,13 @@ ___TEMPLATE_PARAMETERS___
             "type": "STRING_LENGTH",
             "args": [
               36,
-              36
+              41
             ]
           },
           {
             "type": "REGEX",
             "args": [
-              "^(\\w{8})-(\\w{4})-(\\w{4})-(\\w{4})-(\\w{12})$"
+              "^(\\w{8})-(\\w{4})-(\\w{4})-(\\w{4})-(\\w{12})(?:[a-z\\-]{5})?$"
             ]
           }
         ]
@@ -93,45 +71,51 @@ ___TEMPLATE_PARAMETERS___
   {
     "type": "GROUP",
     "name": "Consent Key Settings",
-    "displayName": "Consent Key Settings - Default State",
-    "groupStyle": "ZIPPY_CLOSED",
+    "displayName": "Consent Key Settings",
+    "groupStyle": "ZIPPY_OPEN",
     "subParams": [
       {
         "type": "CHECKBOX",
-        "name": "adStorage",
-        "checkboxText": "adStorage",
+        "name": "analyticsStorage",
+        "checkboxText": "analytics_storage",
         "simpleValueType": true,
-        "help": "Allow advertising cookies before user gives consent."
+        "help": "Allow analytics cookies before user gives consent.",
+        "subParams": []
       },
       {
         "type": "CHECKBOX",
-        "name": "analyticsStorage",
-        "checkboxText": "analyticsStorage",
+        "name": "adStorage",
+        "checkboxText": "ad_storage",
         "simpleValueType": true,
-        "help": "Allow analytics cookies before user gives consent."
+        "help": "Allow advertising cookies before user gives consent.",
+        "subParams": []
       },
       {
         "type": "CHECKBOX",
         "name": "functionalityStorage",
-        "checkboxText": "functionalityStorage",
+        "checkboxText": "functionality_storage",
         "simpleValueType": true,
-        "help": "Allow website functionality cookies before user gives consent."
+        "help": "Allow website functionality cookies before user gives consent.",
+        "subParams": []
       },
       {
         "type": "CHECKBOX",
         "name": "personalizationStorage",
-        "checkboxText": "personalizationStorage",
+        "checkboxText": "personalization_storage",
         "simpleValueType": true,
-        "help": "Allow personalized recommendation cookies before user gives consent."
+        "help": "Allow personalized recommendation cookies before user gives consent.",
+        "subParams": []
       },
       {
         "type": "CHECKBOX",
         "name": "securityStorage",
-        "checkboxText": "securityStorage",
+        "checkboxText": "security_storage",
         "simpleValueType": true,
-        "help": "Allow security cookies before user gives consent."
+        "help": "Allow security cookies before user gives consent.",
+        "subParams": []
       }
-    ]
+    ],
+    "help": "Enter associated category or vendor service IDs"
   }
 ]
 
@@ -142,6 +126,9 @@ const log = require('logToConsole');
 const copyFromWindow = require('copyFromWindow');
 const Object = require('Object');
 const setDefaultConsentState = require('setDefaultConsentState');
+const injectScript = require('injectScript');
+const queryPermission = require('queryPermission');
+const updateConsentState = require('updateConsentState');
 
 /* 
 - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -150,16 +137,15 @@ COLLECT VALUES IN ORDER TO BUILD THE STUB SCRIPT
 */
 let domain = data.Domain;
 
-let scriptURL = 'https://' + data.URL + '/scripttemplates/otSDKStub.js';
 
-if (data.Type === 'otTestScript') {
-  domain += '-test'; 
-}
+let scriptURL ='https://' + data.URL + '/scripttemplates/otSDKStub.js?did='+ data.Domain;
+
 
 const otData = {
   domainId: domain,
   stubURL: scriptURL
 };
+
 log('==otData==', otData);
 //setInWindow('otData', otData);
 
@@ -197,8 +183,15 @@ const isolateStorageValues = () => {
 const storage = isolateStorageValues();
 log('==storage==', storage);
 
-// Call data.gtmOnSuccess when the tag is finished.
-data.gtmOnSuccess();
+log('Success', scriptURL);
+
+if (queryPermission('inject_script', scriptURL)) {
+    injectScript(scriptURL, data.gtmOnSuccess, data.gtmOnFailure);
+log('Success');
+  } else {
+    data.gtmOnFailure();
+log('Fail');
+  }
 
 
 ___WEB_PERMISSIONS___
@@ -468,7 +461,7 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "google_tag_data.ics.entries"
+                    "string": "scriptURL"
                   },
                   {
                     "type": 8,
@@ -476,7 +469,7 @@ ___WEB_PERMISSIONS___
                   },
                   {
                     "type": 8,
-                    "boolean": false
+                    "boolean": true
                   },
                   {
                     "type": 8,
@@ -507,7 +500,7 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "blah"
+                    "string": "domain"
                   },
                   {
                     "type": 8,
@@ -522,6 +515,71 @@ ___WEB_PERMISSIONS___
                     "boolean": false
                   }
                 ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "google_tag_data.ics.entries"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
+  },
+  {
+    "instance": {
+      "key": {
+        "publicId": "inject_script",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "urls",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 1,
+                "string": "https://cookie-cdn.1trust.app/*"
               }
             ]
           }
@@ -543,6 +601,6 @@ scenarios: []
 
 ___NOTES___
 
-Created on 1/26/2022, 4:43:42 PM
+Created on 3/16/2022, 2:24:11 PM
 
 
