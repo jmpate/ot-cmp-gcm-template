@@ -9,8 +9,6 @@ Google may provide), as modified from time to time.
 ___INFO___
 
 {
-  "displayName": "OneTrust CMP Template",
-  "categories": ["TAG_MANAGEMENT", "ADVERTISING","ANALYTICS"],
   "type": "TAG",
   "id": "cvt_temp_public_id",
   "version": 1,
@@ -82,7 +80,15 @@ ___TEMPLATE_PARAMETERS___
         "checkboxText": "analytics_storage",
         "simpleValueType": true,
         "help": "Allow analytics cookies before user gives consent.",
-        "subParams": []
+        "subParams": [
+          {
+            "type": "TEXT",
+            "name": "analyticsStorageCategory",
+            "displayName": "Enter Category ID",
+            "simpleValueType": true,
+            "help": "ie C0002"
+          }
+        ]
       },
       {
         "type": "CHECKBOX",
@@ -90,7 +96,15 @@ ___TEMPLATE_PARAMETERS___
         "checkboxText": "ad_storage",
         "simpleValueType": true,
         "help": "Allow advertising cookies before user gives consent.",
-        "subParams": []
+        "subParams": [
+          {
+            "type": "TEXT",
+            "name": "adStorageCategory",
+            "displayName": "Enter Category ID",
+            "simpleValueType": true,
+            "help": "ie C0004"
+          }
+        ]
       },
       {
         "type": "CHECKBOX",
@@ -98,7 +112,15 @@ ___TEMPLATE_PARAMETERS___
         "checkboxText": "functionality_storage",
         "simpleValueType": true,
         "help": "Allow website functionality cookies before user gives consent.",
-        "subParams": []
+        "subParams": [
+          {
+            "type": "TEXT",
+            "name": "functionalityStorageCategory",
+            "displayName": "Enter Category ID",
+            "simpleValueType": true,
+            "help": "ie C0003"
+          }
+        ]
       },
       {
         "type": "CHECKBOX",
@@ -106,7 +128,15 @@ ___TEMPLATE_PARAMETERS___
         "checkboxText": "personalization_storage",
         "simpleValueType": true,
         "help": "Allow personalized recommendation cookies before user gives consent.",
-        "subParams": []
+        "subParams": [
+          {
+            "type": "TEXT",
+            "name": "personalizationStorageCategory",
+            "displayName": "Enter Category ID",
+            "simpleValueType": true,
+            "help": "ie C0004"
+          }
+        ]
       },
       {
         "type": "CHECKBOX",
@@ -114,7 +144,15 @@ ___TEMPLATE_PARAMETERS___
         "checkboxText": "security_storage",
         "simpleValueType": true,
         "help": "Allow security cookies before user gives consent.",
-        "subParams": []
+        "subParams": [
+          {
+            "type": "TEXT",
+            "name": "securityStorageCategory",
+            "displayName": "Enter a Category ID",
+            "simpleValueType": true,
+            "help": "ie C0003"
+          }
+        ]
       }
     ],
     "help": "Enter associated category or vendor service IDs"
@@ -131,47 +169,51 @@ const setDefaultConsentState = require('setDefaultConsentState');
 const injectScript = require('injectScript');
 const queryPermission = require('queryPermission');
 const updateConsentState = require('updateConsentState');
+const getCookieValues = require('getCookieValues');
+const callInWindow = require('callInWindow');
+const decode = require('decodeUriComponent');
 
-/* 
-- - - - - - - - - - - - - - - - - - - - - - - - -
-COLLECT VALUES IN ORDER TO BUILD THE STUB SCRIPT
-- - - - - - - - - - - - - - - - - - - - - - - - -
+
+/*
+- - - - - - - - - - - - - 
+Build script from inputs
+- - - - - - - - - - - - -
 */
 let domain = data.Domain;
 
-
-let scriptURL ='https://' + data.URL + '/scripttemplates/otSDKStub.js?did='+ data.Domain;
+let scriptURL = 'https://' + data.URL + '/scripttemplates/otSDKStub.js?did=' + data.Domain;
 
 
 const otData = {
-  domainId: domain,
-  stubURL: scriptURL
+    domainId: domain,
+    stubURL: scriptURL
 };
+
 
 log('==otData==', otData);
-//setInWindow('otData', otData);
-
-const CONSENT = {
-  denied: 'denied',
-  granted: 'granted'
-};
-
-setDefaultConsentState({
-  'ad_storage': data.adStorage ? CONSENT.granted : CONSENT.denied,
-  'analytics_storage': data.analyticsStorage ? CONSENT.granted : CONSENT.denied,
-  'functionality_storage': data.functionalityStorage ? CONSENT.granted : CONSENT.denied,
-  'personalization_storage': data.personalizationStorage ? CONSENT.granted : CONSENT.denied,
-  'security_storage': data.securityStorage ? CONSENT.granted : CONSENT.denied,
-  'wait_for_update': 500
-});
 
 
-
-/* 
+/*
 - - - - - - - - - - - - - - - - - - - - - - - - -
-DEBUG STORAGE VALUES
+Set GCM consent key settings defaults from inputs
 - - - - - - - - - - - - - - - - - - - - - - - - -
 */
+
+const CONSENT = {
+    denied: 'denied',
+    granted: 'granted'
+};
+
+
+setDefaultConsentState({
+    'ad_storage': data.adStorage ? CONSENT.granted : CONSENT.denied,
+    'analytics_storage': data.analyticsStorage ? CONSENT.granted : CONSENT.denied,
+    'functionality_storage': data.functionalityStorage ? CONSENT.granted : CONSENT.denied,
+    'personalization_storage': data.personalizationStorage ? CONSENT.granted : CONSENT.denied,
+    'security_storage': data.securityStorage ? CONSENT.granted : CONSENT.denied,
+    'wait_for_update': 500
+});
+
 const storageData = copyFromWindow('google_tag_data.ics.entries');
 
 const isolateStorageValues = () => {
@@ -183,17 +225,49 @@ const isolateStorageValues = () => {
 };
 
 const storage = isolateStorageValues();
-log('==storage==', storage);
+log('==default_storage==', storage);
 
-log('Success', scriptURL);
+
+/*
+- - - - - - - 
+Insert script
+- - - - - - - 
+*/
+
 
 if (queryPermission('inject_script', scriptURL)) {
     injectScript(scriptURL, data.gtmOnSuccess, data.gtmOnFailure);
-log('Success');
-  } else {
-    data.gtmOnFailure();
-log('Fail');
-  }
+    log('Success');
+} else {
+        data.gtmOnFailure();
+    log('Fail');
+}
+
+/*
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Load Groups & Update GCM consent key settings from inputs
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+*/
+
+
+function updateConsent() {
+  log('updateConsent');
+  const userGroups = callInWindow('OnetrustActiveGroups');
+  const consentArray = userGroups.split(",");
+  log('==Active Groups==', consentArray);
+  
+  const updateData = {
+    ad_storage: consentArray.find(data.adStorageCategory) ? CONSENT.granted : CONSENT.denied,
+    analytics_storage: consentArray.find(data.analyticsStorageCategory) ? CONSENT.granted : CONSENT.denied,
+    functionality_storage: consentArray.find(data.functionalityStorageCategory) ? CONSENT.granted : CONSENT.denied,
+    personalization_storage: consentArray.find(data.personalizationStorageCategory) ? CONSENT.granted :       CONSENT.denied,
+    security_storage: consentArray.find(data.securityStorageCategory) ? CONSENT.granted : CONSENT.denied,
+};
+  
+  updateConsentState(updateData);
+}
+
+callInWindow('updateGCM',updateConsent);
 
 
 ___WEB_PERMISSIONS___
@@ -541,7 +615,7 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "google_tag_data.ics.entries"
+                    "string": "updateData"
                   },
                   {
                     "type": 8,
@@ -549,7 +623,46 @@ ___WEB_PERMISSIONS___
                   },
                   {
                     "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
                     "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "OnetrustActiveGroups"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
                   },
                   {
                     "type": 8,
@@ -581,7 +694,40 @@ ___WEB_PERMISSIONS___
             "listItem": [
               {
                 "type": 1,
-                "string": "https://cdn.cookielaw.org/"
+                "string": "https://cookie-cdn.1trust.app/*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
+  },
+  {
+    "instance": {
+      "key": {
+        "publicId": "get_cookies",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "cookieAccess",
+          "value": {
+            "type": 1,
+            "string": "specific"
+          }
+        },
+        {
+          "key": "cookieNames",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 1,
+                "string": "OptanonConsent"
               }
             ]
           }
@@ -603,6 +749,6 @@ scenarios: []
 
 ___NOTES___
 
-Created on 3/16/2022, 2:24:11 PM
+Created on 10/4/2022, 11:18:53 AM
 
 
