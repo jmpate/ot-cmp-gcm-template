@@ -214,19 +214,6 @@ setDefaultConsentState({
     'wait_for_update': 500
 });
 
-const storageData = copyFromWindow('google_tag_data.ics.entries');
-
-const isolateStorageValues = () => {
-  const storage = {};
-  for (let key of Object.keys(storageData)) {
-    storage[key] = storageData[key].initial;
-  }
-  return storage;
-};
-
-const storage = isolateStorageValues();
-log('==default_storage==', storage);
-
 
 /*
 - - - - - - - 
@@ -749,6 +736,6 @@ scenarios: []
 
 ___NOTES___
 
-Created on 10/4/2022, 11:18:53 AM
+Created on 10/4/2022, 12:33:28 PM
 
 
