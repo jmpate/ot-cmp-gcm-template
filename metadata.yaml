@@ -15,5 +15,5 @@
 homepage: "https://www.onetrust.com"
 documentation: "https://my.onetrust.com/s/"
 versions:
-  - sha: 94c333a0642b1f7ba00442df40662548bfafc5f9
-    changeNotes: Updated to data-domain functionality
+  - sha: 78ec9bc510f61c0ba20e75bf48e7352432a8b720
+    changeNotes: Updated to permissions
