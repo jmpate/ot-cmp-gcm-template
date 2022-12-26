@@ -63,7 +63,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "URL",
         "displayName": "`src` URL",
         "simpleValueType": true,
-        "valueHint": "e.g. cdn.cookielaw.org",
+        "valueHint": "e.g. cdn.cookielaw.org or cdn-ukwest.onetrust.com",
         "help": "Put only the domain here. Do not include \"http\" or any special characters such as \"/\"."
       }
     ]
@@ -642,6 +642,11 @@ ___WEB_PERMISSIONS___
               {
                 "type": 1,
                 "string": "https://cdn.cookielaw.org/*"
+              }
+              ,
+              {
+                "type": 1,
+                "string": "https://cdn-ukwest.onetrust.com/*"
               }
             ]
           }
