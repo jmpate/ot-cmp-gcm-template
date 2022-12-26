@@ -163,14 +163,9 @@ ___TEMPLATE_PARAMETERS___
 ___SANDBOXED_JS_FOR_WEB_TEMPLATE___
 
 const log = require('logToConsole');
-const copyFromWindow = require('copyFromWindow');
-const Object = require('Object');
 const setDefaultConsentState = require('setDefaultConsentState');
 const injectScript = require('injectScript');
 const queryPermission = require('queryPermission');
-const updateConsentState = require('updateConsentState');
-const getCookieValues = require('getCookieValues');
-const callInWindow = require('callInWindow');
 const decode = require('decodeUriComponent');
 
 
@@ -214,14 +209,6 @@ setDefaultConsentState({
     'wait_for_update': 500
 });
 
-
-/*
-- - - - - - - 
-Insert script
-- - - - - - - 
-*/
-
-
 if (queryPermission('inject_script', scriptURL)) {
     injectScript(scriptURL, data.gtmOnSuccess, data.gtmOnFailure);
     log('Success');
@@ -229,33 +216,6 @@ if (queryPermission('inject_script', scriptURL)) {
         data.gtmOnFailure();
     log('Fail');
 }
-
-/*
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Load Groups & Update GCM consent key settings from inputs
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-*/
-
-
-function updateConsent() {
-  log('updateConsent');
-  const userGroups = callInWindow('OnetrustActiveGroups');
-  const consentArray = userGroups.split(",");
-  log('==Active Groups==', consentArray);
-  
-  const updateData = {
-    ad_storage: consentArray.find(data.adStorageCategory) ? CONSENT.granted : CONSENT.denied,
-    analytics_storage: consentArray.find(data.analyticsStorageCategory) ? CONSENT.granted : CONSENT.denied,
-    functionality_storage: consentArray.find(data.functionalityStorageCategory) ? CONSENT.granted : CONSENT.denied,
-    personalization_storage: consentArray.find(data.personalizationStorageCategory) ? CONSENT.granted :       CONSENT.denied,
-    security_storage: consentArray.find(data.securityStorageCategory) ? CONSENT.granted : CONSENT.denied,
-};
-  
-  updateConsentState(updateData);
-}
-
-callInWindow('updateGCM',updateConsent);
-
 
 ___WEB_PERMISSIONS___
 
@@ -681,7 +641,7 @@ ___WEB_PERMISSIONS___
             "listItem": [
               {
                 "type": 1,
-                "string": "https://cookie-cdn.1trust.app/*"
+                "string": "https://cdn.cookielaw.org/*"
               }
             ]
           }
